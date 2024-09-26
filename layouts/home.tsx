@@ -30,7 +30,7 @@ export type Order = {
 	price: string;
 	status: Status;
 	onPressDelete?: (id: string) => void;
-	onPressCard?: (id: string) => void;
+	onPressCard?: () => void;
 };
 
 const Home: React.FC<Props> = ({ navigation }) => {
@@ -92,7 +92,7 @@ const Home: React.FC<Props> = ({ navigation }) => {
 						renderItem={({ index, item }) => (
 							<Card
 								onPressDelete={onPressDelete}
-								onPressCard={handleOnPress}
+								onPressCard={() => handleOnPress(item._id!)}
 								{...item}
 							/>
 						)}

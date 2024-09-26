@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import morgan from "morgan";
 import cors from "cors";
 import { MOBILE_URL } from "../helpers/const_type";
-import { Student } from "./model/student";
 import { Order } from "./model/order";
 
 const app = express();
@@ -96,17 +95,21 @@ app.delete("/order/:id", async (req, res) => {
 
 app.put("/order/:id", async (req, res) => {
 	const { id } = req.params;
-	const { status } = req.body;
+	const { status, hasChocolate, hasCream, quantity } = req.body;
 	const order = await Order.findById(id);
 	if (!order) {
 		res.status(404).send("Order not found");
 		return;
 	}
 	order.status = status;
+	order.hasChocolate = hasChocolate;
+	order.hasCream = hasCream;
+	order.quantity = quantity;
+
 	await order
 		.save()
 		.then(() => {
-			res.status(200).send("Order updated");
+			res.status(200).send(order);
 		})
 		.catch((err) => {
 			res.status(500).send("Error updating order");

@@ -36,16 +36,14 @@ const Detail: React.FC<Props> = ({ navigation }) => {
 	useEffect(() => {
 		const fetchOrder = async () => {
 			try {
+				if (!id || id == "" || id == "0") return;
 				const result = await apiRequest.get(`/order/${id}`);
-				if (isSuccessfulStatus(result.status)) {
-					const order: Order = result.data;
-					setHasCream(order.hasCream);
-					setHasChocolate(order.hasChocolate);
-					setQuantity(parseInt(order.quantity));
-				} else {
-					console.log(result);
-					alert("Order not found");
-				}
+				alert("Order found");
+				const order: Order = result;
+				console.log(order);
+				setHasCream(order.hasCream);
+				setHasChocolate(order.hasChocolate);
+				setQuantity(parseInt(order.quantity));
 			} catch (e) {
 				console.log(e);
 				alert("Order not found");
@@ -71,15 +69,20 @@ const Detail: React.FC<Props> = ({ navigation }) => {
 					).toString(),
 					status: "Đang chế biến",
 				};
-
-				const result = await apiRequest.post("/order", order);
-				if (isSuccessfulStatus(result.status)) {
-					alert("Order successfully");
-					navigation.navigate("Home");
+				let result;
+				if (!id || id == "" || id == "0") {
+					result = await apiRequest.post("/order", order);
+					if (isSuccessfulStatus(result.status)) {
+						alert("Order successfully");
+					} else {
+						console.log(result);
+						alert("Order failed");
+					}
 				} else {
-					console.log(result);
-					alert("Order failed");
+					await apiRequest.put(`/order/${id}`, order);
+					alert("Change successfully");
 				}
+				navigation.navigate("Home");
 			} catch (e) {
 				console.log(e);
 				alert("Order failed");

@@ -21,7 +21,7 @@ export default function Card({
 
 	const handleIsPressCard = () => {
 		if (isEdit) return;
-		onPressCard!(_id!);
+		onPressCard!();
 	};
 
 	const onPressUpdate = (_id: string) => {
