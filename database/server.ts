@@ -4,6 +4,7 @@ import morgan from "morgan";
 import cors from "cors";
 import { MOBILE_URL } from "../helpers/const_type";
 import { Student } from "./model/student";
+import { Order } from "./model/order";
 
 const app = express();
 const port = 5000;
@@ -43,61 +44,71 @@ app.get("/hello-world", async (req, res) => {
 	res.send(a);
 });
 
-app.get("/students", async (req, res) => {
-	const result = await Student.find();
+app.get("/orders", async (req, res) => {
+	const result = await Order.find();
 	res.send(result);
 	res.status(200);
 });
 
-app.get("/student/:id", async (req, res) => {
+app.get("/order/:id", async (req, res) => {
 	const { id } = req.params;
-	const student = await Student.findById(id);
-	if (!student) {
-		res.status(404).send("Student not found");
+	const order = await Order.findById(id);
+	if (!order) {
+		res.status(404).send("Order not found");
 		return;
 	}
-	res.send(student);
+	res.send(order);
 	res.status(200);
 });
 
-app.post("/student", async (req, res) => {
-	const { name, age, address } = req.body;
-	const student = new Student({ name, age, address });
-	await student.save();
-	res.send(student);
+app.post("/order", async (req, res) => {
+	const { id, hasCream, hasChocolate, quantity, price, status } = req.body;
+	const order = new Order({
+		id,
+		hasCream,
+		hasChocolate,
+		quantity,
+		price,
+		status,
+	});
+	await order.save();
+	res.send(order);
 	res.status(201);
 });
 
-app.delete("/student/:id", async (req, res) => {
+app.delete("/order/:id", async (req, res) => {
 	const { id } = req.params;
-	const student = await Student;
-	if (!student) {
-		res.status(404).send("Student not found");
+	const order = await Order;
+	if (!order) {
+		res.status(404).send("Order not found");
 		return;
 	}
-	await student
+	await order
 		.findByIdAndDelete(id)
 		.then(() => {
-			res.send("Student deleted");
+			res.send("Order deleted");
 			res.status(200);
 		})
 		.catch((err) => {
-			res.status(500).send("Error deleting student");
+			res.status(500).send("Error deleting order");
 		});
 });
 
-app.put("/student/:id", async (req, res) => {
+app.put("/order/:id", async (req, res) => {
 	const { id } = req.params;
-	const { name, age, address } = req.body;
-	const student = await Student.findById(id);
-	if (!student) {
-		res.status(404).send("Student not found");
+	const { status } = req.body;
+	const order = await Order.findById(id);
+	if (!order) {
+		res.status(404).send("Order not found");
 		return;
 	}
-	student.name = name;
-	student.age = age;
-	student.address = address;
-	await student.save();
-	res.send(student);
-	res.status(200);
+	order.status = status;
+	await order
+		.save()
+		.then(() => {
+			res.status(200).send("Order updated");
+		})
+		.catch((err) => {
+			res.status(500).send("Error updating order");
+		});
 });

@@ -7,127 +7,103 @@ import {
 	Text,
 	View,
 } from "react-native";
-import Input from "../components/input";
 import { FontAwesome } from "@expo/vector-icons";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../helpers/const_type";
 import Toast from "react-native-toast-message";
 import { apiRequest } from "../helpers/apiRequest";
-import { isSuccessfulStatus } from "../helpers/helper";
-import ListItem from "../components/list-item-pressable";
+import Card from "../components/card";
 
 type HomeScreenRouteProp = StackNavigationProp<RootStackParamList, "Home">;
 type Props = {
 	navigation: HomeScreenRouteProp;
 };
 
-export type Students = {
+export type Status = "Đang chế biến" | "Đã phục vụ" | "Đã thanh toán" | null;
+
+export type Order = {
 	_id?: string;
-	name?: string;
-	age?: string;
-	address?: string;
+	id: string;
+	hasCream: boolean;
+	hasChocolate: boolean;
+	quantity: string;
+	price: string;
+	status: Status;
+	onPressDelete?: (id: string) => void;
+	onPressCard?: (id: string) => void;
 };
 
 const Home: React.FC<Props> = ({ navigation }) => {
-	const [name, setName] = useState<string>("");
-	const [age, setAge] = useState<string>("");
-	const [address, setAddress] = useState<string>("");
+	const [orders, setOrders] = useState<Order[]>([]);
 
-	const [students, setStudents] = useState<Students[]>([]);
-
-	useEffect(() => {
-		const fetchStudents = async () => {
-			const result = await apiRequest.get("/students");
+	const fetchOrders = async () => {
+		try {
+			const result = await apiRequest.get("/orders");
 			if (result && result.length > 0) {
-				setStudents(result);
+				setOrders(result);
 			}
-		};
-		fetchStudents();
-	}, []);
-
-	const handleOnItemPress = (id: string) => {
-		navigation.navigate("Detail", { id });
+		} catch (e) {
+			Toast.show({
+				type: "error",
+				text1: "Không tìm thấy Order",
+			});
+		}
 	};
 
-	const handleOnButtonAddPress = async () => {
-		alert("Add student");
-		if (name === "" || age === "" || address === "") {
-			Toast.show({
-				type: "error",
-				text1: "Vui lòng nhập đầy đủ thông tin",
-			});
-			return;
-		}
-
-		if (
-			isNaN(Number(age)) ||
-			age.includes(".") ||
-			Number.parseInt(age) > 99 ||
-			Number.parseInt(age) < 1
-		) {
-			Toast.show({
-				type: "error",
-				text1: "Kiểm tra lại trường nhập tuổi",
-			});
-			return;
-		}
-
-		const newStudent = {
-			name,
-			age,
-			address,
+	const onPressDelete = (_id: string) => {
+		const deleteCard = async () => {
+			await apiRequest.delete(`/order/${_id}`);
 		};
+		deleteCard();
+		alert("Deleted successfully");
+		setOrders(orders.filter((order) => order._id !== _id));
+	};
 
-		const result = await apiRequest.post("/student", newStudent);
-		console.log("result", result);
-		try {
-			if (isSuccessfulStatus(result.status)) {
-				Toast.show({
-					type: "success",
-					text1: "Thêm sinh viên thành công",
-				});
-				const responseStudent: Students = result.data;
-				setStudents([...students, responseStudent]);
-				setName("");
-				setAge("");
-				setAddress("");
-			} else {
-				Toast.show({ type: "error", text1: "Thêm sinh viên thất bại" });
-			}
-		} catch (error) {
-			Toast.show({ type: "error", text1: "Thêm sinh viên thất bại" });
-		}
+	useEffect(() => {
+		const unsubscribe = navigation.addListener("focus", () => {
+			fetchOrders();
+		});
+		fetchOrders();
+		return unsubscribe;
+	}, [navigation]);
+
+	const handleOnButtonAddPress = async () => {
+		alert("Add order");
+		navigation.navigate("Detail", { id: "" });
+	};
+
+	const handleOnPress = async (_id: string) => {
+		alert("Detail");
+		navigation.navigate("Detail", { id: _id });
 	};
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
 			<View style={styles.container}>
-				<Text style={styles.h2}>Thông tin sinh viên</Text>
-				<Input label="Họ và tên" value={name} onChangeText={setName} />
-				<Input label="Tuổi" value={age} onChangeText={setAge} />
-				<Input
-					label="Địa chỉ"
-					value={address}
-					onChangeText={setAddress}
-				/>
 				<Pressable
 					style={styles.buttonAdd}
 					onPress={handleOnButtonAddPress}
 				>
 					<FontAwesome name="plus" size={24} color="black" />
 				</Pressable>
-				<FlatList
-					data={students}
-					renderItem={({ item }) => (
-						<ListItem
-							item={item}
-							onPress={() => handleOnItemPress(item._id!)}
-						/>
-					)}
-					keyExtractor={(item) => item!._id!}
-					scrollEnabled={true}
-					showsVerticalScrollIndicator={true}
-				/>
+				{orders && orders.length > 0 && (
+					<FlatList
+						data={orders}
+						renderItem={({ index, item }) => (
+							<Card
+								onPressDelete={onPressDelete}
+								onPressCard={handleOnPress}
+								{...item}
+							/>
+						)}
+						keyExtractor={(item) => item!._id!}
+						scrollEnabled={true}
+						showsVerticalScrollIndicator={true}
+					/>
+				)}
+				{orders && orders.length == 0 && (
+					<Text>Không có Order nào</Text>
+				)}
 			</View>
 		</SafeAreaView>
 	);

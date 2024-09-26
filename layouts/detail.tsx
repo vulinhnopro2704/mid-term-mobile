@@ -1,14 +1,21 @@
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useRoute, RouteProp } from "@react-navigation/native";
 
-import React, { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+	ActivityIndicator,
+	Pressable,
+	StyleSheet,
+	Text,
+	View,
+} from "react-native";
 
 import { RootStackParamList } from "../helpers/const_type";
+import { Order } from "./home";
+import { CheckBox } from "react-native-elements";
+import StyleButton from "../components/styled-button";
 import { apiRequest } from "../helpers/apiRequest";
-import Toast from "react-native-toast-message";
-import { Students } from "./home";
-import Input from "../components/input";
+import { isSuccessfulStatus } from "../helpers/helper";
 
 type DetailsScreenRouteProp = StackNavigationProp<RootStackParamList, "Detail">;
 
@@ -17,40 +24,98 @@ type Props = {
 };
 
 const Detail: React.FC<Props> = ({ navigation }) => {
-	const [student, setStudent] = React.useState<Students>({});
 	const route = useRoute<RouteProp<RootStackParamList, "Detail">>();
-	const { id } = route.params;
+	const id = route.params.id;
+	const [hasCream, setHasCream] = useState(false);
+	const [hasChocolate, setHasChocolate] = useState(false);
+	const [quantity, setQuantity] = useState<number>(0);
+
+	const increaseQuantity = () => setQuantity(quantity + 1);
+	const decreaseQuantity = () => setQuantity(quantity > 1 ? quantity - 1 : 1);
 
 	useEffect(() => {
-		const fetchData = async () => {
+		const fetchOrder = async () => {
 			try {
-				const result = await apiRequest.get(`/student/${id}`);
-				console.log(result);
-				if (result) {
-					console.log(result.data);
-					setStudent(result);
+				const result = await apiRequest.get(`/order/${id}`);
+				if (isSuccessfulStatus(result.status)) {
+					const order: Order = result.data;
+					setHasCream(order.hasCream);
+					setHasChocolate(order.hasChocolate);
+					setQuantity(parseInt(order.quantity));
 				} else {
-					Toast.show({
-						type: "error",
-						text1: "Không tìm thấy sinh viên",
-					});
+					console.log(result);
+					alert("Order not found");
 				}
 			} catch (e) {
-				Toast.show({
-					type: "error",
-					text1: "Không tìm thấy sinh viên",
-				});
+				console.log(e);
+				alert("Order not found");
 			}
 		};
-		fetchData();
+		fetchOrder();
 	}, [id]);
+
+	const handleOrder = () => {
+		const saveOrder = async () => {
+			try {
+				const order: Order = {
+					id: "1",
+					hasCream: hasCream,
+					hasChocolate: hasChocolate,
+					quantity: quantity.toString(),
+					price: (
+						1.0 *
+						((hasCream ? 0.5 : 0) +
+							(hasChocolate ? 1.0 : 0) +
+							quantity) *
+						4.0
+					).toString(),
+					status: "Đang chế biến",
+				};
+
+				const result = await apiRequest.post("/order", order);
+				if (isSuccessfulStatus(result.status)) {
+					alert("Order successfully");
+					navigation.navigate("Home");
+				} else {
+					console.log(result);
+					alert("Order failed");
+				}
+			} catch (e) {
+				console.log(e);
+				alert("Order failed");
+			}
+		};
+		saveOrder();
+	};
 
 	return (
 		<View style={styles.container}>
-			<Text style={styles.h2}>Thông tin sinh viên</Text>
-			<Input label="Họ và tên" value={student.name! ?? ""} />
-			<Input label="Tuổi" value={student.age! ?? ""} />
-			<Input label="Địa chỉ" value={student.address! ?? ""} />
+			<Text style={styles.h2}>Choose Toppings: </Text>
+			<View>
+				<CheckBox
+					title="Whipped Cream"
+					checked={hasCream}
+					onPress={() => setHasCream(!hasCream)}
+				/>
+				<CheckBox
+					title="Chocolate"
+					checked={hasChocolate}
+					onPress={() => setHasChocolate(!hasChocolate)}
+				/>
+			</View>
+			<View style={styles.quantityContainer}>
+				<Text>Quantity: </Text>
+				<View style={styles.counter}>
+					<Pressable onPress={decreaseQuantity} style={styles.button}>
+						<Text style={styles.buttonText}>-</Text>
+					</Pressable>
+					<Text style={styles.quantityText}>{quantity}</Text>
+					<Pressable onPress={increaseQuantity} style={styles.button}>
+						<Text style={styles.buttonText}>+</Text>
+					</Pressable>
+				</View>
+			</View>
+			<StyleButton title="Order" onPress={handleOrder} />
 		</View>
 	);
 };
@@ -61,11 +126,39 @@ const styles = StyleSheet.create({
 		backgroundColor: "#fff",
 		alignItems: "center",
 		justifyContent: "center",
+		gap: 20,
 	},
 	h2: {
 		fontSize: 24,
 		fontWeight: "bold",
 		marginBottom: 10,
+	},
+	quantityContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginTop: 20,
+		gap: 10,
+	},
+	counter: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginTop: 10,
+	},
+	button: {
+		width: 30,
+		height: 30,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#ddd",
+		borderRadius: 15,
+		marginHorizontal: 10,
+	},
+	buttonText: {
+		fontSize: 18,
+		fontWeight: "bold",
+	},
+	quantityText: {
+		fontSize: 18,
 	},
 });
 
